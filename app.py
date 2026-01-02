@@ -44,14 +44,20 @@ if uploaded_file is not None:
     st.write(f"total Chunks created: {len(chunks)}")
 
     #load embedding model and create embeddings
-    model = SentenceTransformer("all-MiniLM-L6-v2")
-    embeddings = model.encode(chunks, convert_to_numpy=True)
-    faiss.normalize_L2(embeddings)
-    st.write("Embeddings Created!")
+    @st.cache_resource
+    def create_embeddings(chunks):
+        model = SentenceTransformer("all-MiniLM-L6-v2")
+        embeddings = model.encode(chunks, convert_to_numpy=True)
+        faiss.normalize_L2(embeddings)
+        st.write("Embeddings Created!")
 
-    #create FAISS
-    index = faiss.IndexFlatL2(embeddings.shape[1])
-    index.add(embeddings)
+        #create FAISS
+        index = faiss.IndexFlatL2(embeddings.shape[1])
+        index.add(embeddings)
+
+        return model, index
+
+    model, index = create_embeddings(chunks)
 
     #ask Questions
     raw_query = st.text_input("ask a question from your pdf:")
@@ -84,7 +90,7 @@ Answer:
         messages = [{"role":"user","content":prompt}]
     )
     st.subheader("\nAnswer:")
-    st.write(response["message"],["content"])
+    st.write(response["message"]["content"])
 
 
 
